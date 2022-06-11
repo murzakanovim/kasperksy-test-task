@@ -8,10 +8,13 @@
 
 namespace fs = std::filesystem;
 
-
-std::string convert_single_line(const std::string& gmi_line)
+bool starts_with(const std::string& smaller_string, const std::string& bigger_string)
 {
+  return (smaller_string == bigger_string.substr(0, smaller_string.length()));
+}
 
+std::string convert_one_line(const std::string& gmi_line)
+{
   std::map<std::string, std::string> tags_map;
   tags_map.insert(std::make_pair("^# (.*)", "h1"));
   tags_map.insert(std::make_pair("^## (.*)", "h2"));
@@ -34,13 +37,13 @@ std::string convert_single_line(const std::string& gmi_line)
         ss.get(); // 
         ss >> href;
         getline(ss >> std::ws, reference_name);
-        
+
         result = "<" + tag + " href=\"" + href + "\">" + reference_name + "</" + tag + ">";
-        
+
         return result;
       }
       std::string text;
-      ss >> text; // пропустить первый символ
+      ss >> text; // пропустить всё до пробела
       getline(ss >> std::ws, text); // прочитать до конца
       result = "<" + tag + ">" + text + "</" + tag + ">";
       return result;
@@ -55,29 +58,26 @@ void translateFromGmiToHtml(const fs::path& src, const fs::path& target)
   std::ifstream gmi_file(src);
   std::ofstream html_file(target);
 
-  if (!gmi_file.is_open())
-  {
-    throw std::runtime_error("Aboba");
-  }
-
   std::string gmi_line;
   std::string html_line;
-  bool isPreformatted = false;
+
+  bool is_preformatted = false;
   bool is_list = false;
+
   while (std::getline(gmi_file, gmi_line)) {
-    if (gmi_line.length() >= 3 && gmi_line[0] == '`' && gmi_line[1] == '`' && gmi_line[2] == '`')
+    if (starts_with("```", gmi_line))
     {
-      isPreformatted = !isPreformatted;
-      std::string pre_tag = isPreformatted ? "<pre>" : "</pre>";
+      is_preformatted = !is_preformatted;
+      std::string pre_tag = is_preformatted ? "<pre>" : "</pre>";
       html_file << pre_tag << "\n";
     }
-    else if (isPreformatted) {
+    else if (is_preformatted) {
       html_file << gmi_line << "\n";
     }
     else
     {
-      html_line = convert_single_line(gmi_line);
-      if (html_line[1] == 'l' && html_line[2] == 'i') // TO DO::
+      html_line = convert_one_line(gmi_line);
+      if (starts_with("<li>", html_line))
       {
         if (!is_list) {
           is_list = true;
@@ -99,22 +99,22 @@ void generateSite(const fs::path& input_directory, const fs::path& output_direct
 {
   try
   {
-    for (const auto& dirEntry : fs::recursive_directory_iterator(input_directory))
+    for (const auto& dir_entry : fs::recursive_directory_iterator(input_directory))
     {
-      
-      const fs::path current_path = dirEntry.path();
+      const fs::path current_path = dir_entry.path();
       const fs::path relative_src = fs::relative(current_path, input_directory);
       const fs::path target_path = output_directory;
-      if (dirEntry.is_directory()) {
+      if (dir_entry.is_directory()) {
         fs::create_directories(target_path / relative_src);
       }
       else
       {
         if (current_path.extension() == ".gmi")
         {
-          fs::path relative_html_file = fs::relative(current_path, input_directory).parent_path();
-          std::string filename = current_path.stem().string() + ".html";
-          translateFromGmiToHtml(current_path, target_path / relative_html_file / filename);
+          const fs::path relative_html_file_path = fs::relative(current_path, input_directory).parent_path();
+          const std::string html_filename = current_path.stem().string() + ".html";
+          const fs::path output_html_path = target_path / relative_html_file_path / html_filename;
+          translateFromGmiToHtml(current_path, output_html_path);
         }
         else
         {
@@ -135,5 +135,5 @@ int main() {
   fs::path output_directory(fs::current_path() / "OutputDirectory");
   // std::cin >> input_directory;
   // std::cin >> output_directory;
-  generateSite(input_directory, output_directory); 
+  generateSite(input_directory, output_directory);
 }
