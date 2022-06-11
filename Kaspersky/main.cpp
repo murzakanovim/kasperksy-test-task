@@ -9,7 +9,7 @@
 namespace fs = std::filesystem;
 
 
-std::string convert_single_line(std::string gmi_line)
+std::string convert_single_line(const std::string& gmi_line)
 {
 
   std::map<std::string, std::string> tags_map;
@@ -21,10 +21,10 @@ std::string convert_single_line(std::string gmi_line)
   tags_map.insert(std::make_pair("^=>\\s*(\\S+)(\\s+.*)?", "a"));
   std::string result;
 
-  for (auto pair : tags_map) {
-    if (std::regex_match(gmi_line, std::regex(pair.first)))
+  for (auto tags_pair : tags_map) {
+    if (std::regex_match(gmi_line, std::regex(tags_pair.first)))
     {
-      std::string tag = tags_map[pair.first];
+      std::string tag = tags_map[tags_pair.first];
       std::stringstream ss(gmi_line);
       if (tag == "a")
       {
@@ -33,7 +33,7 @@ std::string convert_single_line(std::string gmi_line)
         ss.get(); // TO DO как красивее
         ss.get(); // 
         ss >> href;
-        getline(ss, reference_name);
+        getline(ss >> std::ws, reference_name);
         
         result = "<" + tag + " href=\"" + href + "\">" + reference_name + "</" + tag + ">";
         
@@ -41,7 +41,7 @@ std::string convert_single_line(std::string gmi_line)
       }
       std::string text;
       ss >> text; // пропустить первый символ
-      getline(ss, text); // прочитать до конца
+      getline(ss >> std::ws, text); // прочитать до конца
       result = "<" + tag + ">" + text + "</" + tag + ">";
       return result;
     }
@@ -99,33 +99,33 @@ void generateSite(const fs::path& input_directory, const fs::path& output_direct
 {
   try
   {
-    
     for (const auto& dirEntry : fs::recursive_directory_iterator(input_directory))
     {
       
-      const fs::path path = dirEntry.path();
-      const fs::path relativeSrc = fs::relative(path, input_directory);
-      const fs::path targetPath = output_directory;
+      const fs::path current_path = dirEntry.path();
+      const fs::path relative_src = fs::relative(current_path, input_directory);
+      const fs::path target_path = output_directory;
       if (dirEntry.is_directory()) {
-        fs::create_directories(targetPath / relativeSrc);
+        fs::create_directories(target_path / relative_src);
       }
       else
       {
-        if (path.extension() == ".gmi") {
-          fs::path relative_new = fs::relative(path, input_directory).parent_path();
-          std::string filename = path.stem().string() + ".html";
-          translateFromGmiToHtml(path, targetPath / relative_new / filename);
+        if (current_path.extension() == ".gmi")
+        {
+          fs::path relative_html_file = fs::relative(current_path, input_directory).parent_path();
+          std::string filename = current_path.stem().string() + ".html";
+          translateFromGmiToHtml(current_path, target_path / relative_html_file / filename);
         }
         else
         {
-          fs::copy(path, targetPath / relativeSrc, fs::copy_options::overwrite_existing);
+          fs::copy(current_path, target_path / relative_src, fs::copy_options::overwrite_existing);
         }
       }
     }
   }
-  catch (const std::exception& a)
+  catch (const std::exception& exc)
   {
-    std::cerr << a.what();
+    std::cerr << exc.what();
   }
 }
 
@@ -135,5 +135,5 @@ int main() {
   fs::path output_directory(fs::current_path() / "OutputDirectory");
   // std::cin >> input_directory;
   // std::cin >> output_directory;
-  generateSite(input_directory, output_directory); // TODO: УДАЛИТЬ ПЕРВЫЙ ПРОБЕЛ И ПРОБЕЛЫ МЕЖДУ ЗАМЕНИТЬ НА 1
+  generateSite(input_directory, output_directory); 
 }
