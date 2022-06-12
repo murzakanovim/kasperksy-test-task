@@ -29,7 +29,7 @@ namespace task {
     for (const auto& tags_pair : tags_map) {
       if (std::regex_match(gmi_line, std::regex(tags_pair.first)))
       {
-        std::string tag = (*tags_map.find(tags_pair.first)).second;
+        std::string tag = tags_pair.second;
         std::stringstream ss(gmi_line);
         if (tag == "a")
         {
