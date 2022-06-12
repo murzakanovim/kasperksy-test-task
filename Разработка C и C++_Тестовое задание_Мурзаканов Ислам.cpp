@@ -43,7 +43,6 @@ namespace task {
           getline(ss >> std::ws, reference_name);
 
           result = "<" + tag + " href=\"" + href + "\">" + reference_name + "</" + tag + ">";
-
           return result;
         }
         std::string text;
