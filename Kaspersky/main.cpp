@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 
-
 namespace task {
   namespace fs = std::filesystem;
   bool starts_with(const std::string& smaller_string, const std::string& bigger_string)
