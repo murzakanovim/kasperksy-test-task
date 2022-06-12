@@ -15,7 +15,7 @@ namespace task {
 
   std::string convert_one_line(const std::string& gmi_line)
   {
-    static std::map<std::string, std::string> tags_map{
+    static const std::map<std::string, std::string> tags_map{
       {"^# (.*)", "h1"},
       {"^## (.*)", "h2"},
       {"^### (.*)", "h3"},
@@ -29,7 +29,7 @@ namespace task {
     for (const auto& tags_pair : tags_map) {
       if (std::regex_match(gmi_line, std::regex(tags_pair.first)))
       {
-        std::string tag = tags_map[tags_pair.first];
+        std::string tag = (*tags_map.find(tags_pair.first)).second;
         std::stringstream ss(gmi_line);
         if (tag == "a")
         {
